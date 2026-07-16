@@ -1,0 +1,6 @@
+{
+  "name": "Adobe Stock Problem Solver",
+  "description": "Diagnose Adobe Stock quality rejections, generate guidelines-compliant titles and keywords, and export metadata CSVs for bulk upload.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
