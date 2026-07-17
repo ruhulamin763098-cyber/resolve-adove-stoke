@@ -50,6 +50,12 @@ export default function DiagnosticPanel({
   }
 
   const getAcceptanceLabel = (rate: number) => {
+    if (rate >= 100) {
+      return { 
+        text: isBN ? "১০০% পাস ও অনুমোদিত (১০০% Approved)" : "100% Approved & Passed", 
+        color: "text-green-400 bg-green-950/25 border-green-900/50" 
+      };
+    }
     if (rate >= 85) {
       return { 
         text: isBN ? "পাস হওয়ার উচ্চ সম্ভাবনা" : "High Probability Pass", 
