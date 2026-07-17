@@ -83,6 +83,24 @@ const DEMO_IMAGES = [
 
 export default function App() {
   const [images, setImages] = useState<AnalyzedImage[]>([]);
+  const imagesRef = React.useRef<AnalyzedImage[]>(images);
+
+  useEffect(() => {
+    imagesRef.current = images;
+  }, [images]);
+
+  // Atomically updates state, synchronous ref, and saves to localStorage
+  const updateImagesState = (
+    newImagesOrUpdater: AnalyzedImage[] | ((prev: AnalyzedImage[]) => AnalyzedImage[])
+  ) => {
+    setImages((prev) => {
+      const next = typeof newImagesOrUpdater === "function" ? newImagesOrUpdater(prev) : newImagesOrUpdater;
+      imagesRef.current = next;
+      saveToLocalStorage(next);
+      return next;
+    });
+  };
+
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [isBulkAnalyzing, setIsBulkAnalyzing] = useState(false);
@@ -148,35 +166,41 @@ export default function App() {
       customNotes: "",
     }));
 
-    let combined = [...images, ...initialized];
-    
-    if (combined.length > 30) {
-      setGeneralError(
-        isBN
-          ? "ব্রাউজারের পারফরম্যান্স এবং সঠিক CSV তৈরির স্বার্থে একসাথে সর্বোচ্চ ৩০টি ফাইল কিউতে রাখা যাবে। কিউ ৩০টি ফাইলে সীমাবদ্ধ করা হয়েছে।"
-          : "To ensure browser performance and accurate CSV export, the queue is limited to 30 images. Extra images have been removed."
-      );
-      combined = combined.slice(0, 30);
-    } else {
-      setGeneralError(null);
-    }
+    updateImagesState((prev) => {
+      let combined = [...prev, ...initialized];
+      if (combined.length > 30) {
+        setGeneralError(
+          isBN
+            ? "ব্রাউজারের পারফরম্যান্স এবং সঠিক CSV তৈরির স্বার্থে একসাথে সর্বোচ্চ ৩০টি ফাইল কিউতে রাখা যাবে। কিউ ৩০টি ফাইলে সীমাবদ্ধ করা হয়েছে।"
+            : "To ensure browser performance and accurate CSV export, the queue is limited to 30 images. Extra images have been removed."
+        );
+        combined = combined.slice(0, 30);
+      } else {
+        setGeneralError(null);
+      }
 
-    setImages(combined);
-    saveToLocalStorage(combined);
+      // Automatically select the first uploaded image if none is selected
+      setTimeout(() => {
+        setSelectedImageId((curr) => curr || combined[0]?.id || null);
+      }, 0);
 
-    if (!selectedImageId && combined.length > 0) {
-      setSelectedImageId(combined[0].id);
-    }
+      return combined;
+    });
   };
 
   const handleRemoveImage = (id: string) => {
-    const filtered = images.filter((img) => img.id !== id);
-    setImages(filtered);
-    saveToLocalStorage(filtered);
-
-    if (selectedImageId === id) {
-      setSelectedImageId(filtered.length > 0 ? filtered[0].id : null);
-    }
+    updateImagesState((prev) => {
+      const filtered = prev.filter((img) => img.id !== id);
+      setTimeout(() => {
+        setSelectedImageId((curr) => {
+          if (curr === id) {
+            return filtered.length > 0 ? filtered[0].id : null;
+          }
+          return curr;
+        });
+      }, 0);
+      return filtered;
+    });
   };
 
   const handleClearQueue = () => {
@@ -184,50 +208,48 @@ export default function App() {
       ? "আপনি কি নিশ্চিত যে সম্পূর্ণ আপলোড কিউটি মুছে ফেলতে চান?" 
       : "Are you sure you want to clear your entire upload queue?";
     if (window.confirm(confirmMsg)) {
-      setImages([]);
+      updateImagesState([]);
       setSelectedImageId(null);
-      localStorage.removeItem("adobe_stock_solver_queue");
     }
   };
 
   const handleUpdateNotes = (id: string, notes: string) => {
-    const updated = images.map((img) =>
-      img.id === id ? { ...img, customNotes: notes } : img
+    updateImagesState((prev) =>
+      prev.map((img) => (img.id === id ? { ...img, customNotes: notes } : img))
     );
-    setImages(updated);
-    saveToLocalStorage(updated);
   };
 
   const handleUpdateMetadata = (
     id: string,
     updates: Partial<AnalyzedImage["adobeStockMetadata"]>
   ) => {
-    const updated = images.map((img) => {
-      if (img.id === id && img.adobeStockMetadata) {
-        return {
-          ...img,
-          adobeStockMetadata: {
-            ...img.adobeStockMetadata,
-            ...updates,
-          } as any,
-        };
-      }
-      return img;
-    });
-    setImages(updated);
-    saveToLocalStorage(updated);
+    updateImagesState((prev) =>
+      prev.map((img) => {
+        if (img.id === id && img.adobeStockMetadata) {
+          return {
+            ...img,
+            adobeStockMetadata: {
+              ...img.adobeStockMetadata,
+              ...updates,
+            } as any,
+          };
+        }
+        return img;
+      })
+    );
   };
 
   // Run analysis for a single image
   const handleAnalyzeImage = async (id: string) => {
-    const imgToAnalyze = images.find((img) => img.id === id);
+    const imgToAnalyze = imagesRef.current.find((img) => img.id === id);
     if (!imgToAnalyze) return;
 
     // Set to analyzing
-    const updated1 = images.map((img) =>
-      img.id === id ? { ...img, status: "analyzing" as const } : img
+    updateImagesState((prev) =>
+      prev.map((img) =>
+        img.id === id ? { ...img, status: "analyzing" as const } : img
+      )
     );
-    setImages(updated1);
 
     try {
       // Remove dataUrl header (e.g. "data:image/png;base64,") before sending to API
@@ -254,42 +276,41 @@ export default function App() {
 
       const diagnosticData = await res.json();
 
-      const updated2 = images.map((img) => {
-        if (img.id === id) {
-          return {
-            ...img,
-            status: "completed" as const,
-            acceptanceRate: diagnosticData.acceptanceRate,
-            overallQualityScore: diagnosticData.overallQualityScore,
-            rejectionRisks: diagnosticData.rejectionRisks,
-            adobeStockMetadata: diagnosticData.adobeStockMetadata,
-            rejectionChecklist: diagnosticData.rejectionChecklist,
-          };
-        }
-        return img;
-      });
-
-      setImages(updated2);
-      saveToLocalStorage(updated2);
+      updateImagesState((prev) =>
+        prev.map((img) => {
+          if (img.id === id) {
+            return {
+              ...img,
+              status: "completed" as const,
+              acceptanceRate: diagnosticData.acceptanceRate,
+              overallQualityScore: diagnosticData.overallQualityScore,
+              rejectionRisks: diagnosticData.rejectionRisks,
+              adobeStockMetadata: diagnosticData.adobeStockMetadata,
+              rejectionChecklist: diagnosticData.rejectionChecklist,
+            };
+          }
+          return img;
+        })
+      );
     } catch (err: any) {
       console.error("Evaluation error", err);
-      const updatedError = images.map((img) =>
-        img.id === id
-          ? {
-              ...img,
-              status: "error" as const,
-              error: err.message || "Failed to contact analysis server.",
-            }
-          : img
+      updateImagesState((prev) =>
+        prev.map((img) =>
+          img.id === id
+            ? {
+                ...img,
+                status: "error" as const,
+                error: err.message || "Failed to contact analysis server.",
+              }
+            : img
+        )
       );
-      setImages(updatedError);
-      saveToLocalStorage(updatedError);
     }
   };
 
   // Run analysis for all idle images sequentially
   const handleBulkAnalyze = async () => {
-    const idleImages = images.filter((img) => img.status === "idle" || img.status === "error");
+    const idleImages = imagesRef.current.filter((img) => img.status === "idle" || img.status === "error");
     if (idleImages.length === 0) return;
 
     setIsBulkAnalyzing(true);
@@ -307,7 +328,7 @@ export default function App() {
 
   // Handles exporting to Adobe Stock CSV
   const handleExportCSV = () => {
-    const success = exportToAdobeStockCSV(images);
+    const success = exportToAdobeStockCSV(imagesRef.current);
     if (!success) {
       setGeneralError(
         isBN
@@ -321,7 +342,7 @@ export default function App() {
 
   // Handles downloading all completed/solved images
   const handleDownloadAllImages = () => {
-    const completedImages = images.filter((img) => img.status === "completed");
+    const completedImages = imagesRef.current.filter((img) => img.status === "completed");
     if (completedImages.length === 0) {
       setGeneralError(
         isBN
@@ -348,20 +369,17 @@ export default function App() {
   const handleUpscaleImage = async (id: string) => {
     setIsUpscalingMap((prev) => ({ ...prev, [id]: true }));
     try {
-      // Fetch latest up-to-date image data atomically from state
-      let imgToUpscale: AnalyzedImage | undefined;
-      setImages((prev) => {
-        imgToUpscale = prev.find((img) => img.id === id);
-        return prev;
-      });
+      // Fetch latest up-to-date image data synchronously from imagesRef
+      const imgToUpscale = imagesRef.current.find((img) => img.id === id);
 
       if (!imgToUpscale) return;
 
       // Apply 2X super resolution upscale + sharpening & contrast optimization
       const upscaledDataUrl = await upscaleAndEnhanceImage(imgToUpscale.dataUrl, 2);
+      const newSize = Math.round((upscaledDataUrl.length * 3) / 4);
 
-      setImages((prev) => {
-        const next = prev.map((img) => {
+      updateImagesState((prev) =>
+        prev.map((img) => {
           if (img.id === id) {
             // Fully resolved checklist items
             const resolvedChecklist = img.rejectionChecklist?.map((item) => ({
@@ -386,6 +404,7 @@ export default function App() {
             return {
               ...img,
               dataUrl: upscaledDataUrl,
+              fileSize: newSize,
               status: "completed" as const,
               overallQualityScore: 10,
               acceptanceRate: 98,
@@ -397,12 +416,8 @@ export default function App() {
             };
           }
           return img;
-        });
-
-        // Safe persist to localStorage
-        saveToLocalStorage(next);
-        return next;
-      });
+        })
+      );
     } catch (err) {
       console.error("Upscale error:", err);
     } finally {
@@ -412,12 +427,8 @@ export default function App() {
 
   // 2x upscale and resolve all completed images in batch
   const handleUpscaleAllCompletedImages = async () => {
-    // Dynamically retrieve completed images from current state
-    let completedImages: AnalyzedImage[] = [];
-    setImages((prev) => {
-      completedImages = prev.filter((img) => img.status === "completed");
-      return prev;
-    });
+    // Dynamically retrieve completed images synchronously from imagesRef
+    const completedImages = imagesRef.current.filter((img) => img.status === "completed");
 
     if (completedImages.length === 0) {
       setGeneralError(
