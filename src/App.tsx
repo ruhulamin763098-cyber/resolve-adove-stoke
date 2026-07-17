@@ -269,12 +269,30 @@ export default function App() {
         }),
       });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Server failed to process the image.");
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error(
+          lang === "bn"
+            ? "সার্ভার কনফিগারেশন বা সংযোগের সমস্যা: ব্যাকএন্ড এপিআই সার্ভারটি লোড হচ্ছে। অনুগ্রহ করে পেজটি রিফ্রেশ করে আবার চেষ্টা করুন।"
+            : "Server configuration or connection issue: The backend API server is loading. Please refresh the page and try again."
+        );
       }
 
-      const diagnosticData = await res.json();
+      const textData = await res.text();
+      let diagnosticData: any;
+      try {
+        diagnosticData = JSON.parse(textData);
+      } catch (parseErr) {
+        throw new Error(
+          lang === "bn"
+            ? "সার্ভার থেকে অবৈধ রেসপন্স পাওয়া গেছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+            : "Invalid response format received from the server. Please try again."
+        );
+      }
+
+      if (!res.ok) {
+        throw new Error(diagnosticData.error || "Server failed to process the image.");
+      }
 
       updateImagesState((prev) =>
         prev.map((img) => {
