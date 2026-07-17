@@ -1,16 +1,19 @@
 import React, { useCallback, useState } from "react";
 import { UploadCloud, Image, FileImage, Plus } from "lucide-react";
 import { AnalyzedImage } from "../types";
+import { resizeAndCompressImage } from "../utils/image";
 
 interface ImageDropzoneProps {
   onImagesAdded: (images: Omit<AnalyzedImage, "status">[]) => void;
+  lang: "bn" | "en";
 }
 
-export default function ImageDropzone({ onImagesAdded }: ImageDropzoneProps) {
+export default function ImageDropzone({ onImagesAdded, lang }: ImageDropzoneProps) {
   const [isDragActive, setIsDragActive] = useState(false);
+  const isBN = lang === "bn";
 
   const processFiles = useCallback(
-    (files: FileList) => {
+    async (files: FileList) => {
       const validFiles: File[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -21,29 +24,32 @@ export default function ImageDropzone({ onImagesAdded }: ImageDropzoneProps) {
 
       if (validFiles.length === 0) return;
 
-      const newImages: Omit<AnalyzedImage, "status">[] = [];
-      let processedCount = 0;
+      try {
+        const results = await Promise.all(
+          validFiles.map(async (file) => {
+            try {
+              const resizedDataUrl = await resizeAndCompressImage(file);
+              return {
+                id: crypto.randomUUID(),
+                filename: file.name,
+                dataUrl: resizedDataUrl,
+                fileSize: file.size,
+                mimeType: file.type === "image/svg+xml" ? "image/svg+xml" : "image/jpeg",
+              } as Omit<AnalyzedImage, "status">;
+            } catch (err) {
+              console.error(`Failed to process file ${file.name}:`, err);
+              return null;
+            }
+          })
+        );
 
-      validFiles.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          if (e.target?.result) {
-            newImages.push({
-              id: crypto.randomUUID(),
-              filename: file.name,
-              dataUrl: e.target.result as string,
-              fileSize: file.size,
-              mimeType: file.type,
-            });
-          }
-
-          processedCount++;
-          if (processedCount === validFiles.length) {
-            onImagesAdded(newImages);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+        const newImages = results.filter((img): img is Omit<AnalyzedImage, "status"> => img !== null);
+        if (newImages.length > 0) {
+          onImagesAdded(newImages);
+        }
+      } catch (err) {
+        console.error("Failed to process files in batch:", err);
+      }
     },
     [onImagesAdded]
   );
@@ -110,10 +116,16 @@ export default function ImageDropzone({ onImagesAdded }: ImageDropzoneProps) {
         </div>
         <div className="min-w-0">
           <p className="text-xs font-semibold text-white">
-            Drag files here or <span className="text-[#0265DC] underline">browse computer</span>
+            {isBN ? (
+              <span>এখানে ফাইল ড্র্যাগ করুন অথবা <span className="text-[#0265DC] underline">কম্পিউটার ব্রাউজ করুন</span></span>
+            ) : (
+              <span>Drag files here or <span className="text-[#0265DC] underline">browse computer</span></span>
+            )}
           </p>
-          <p className="text-[10px] text-[#999999] mt-0.5 leading-tight">
-            Supports JPEG, PNG, WEBP. Upload multiple images for batch CSV production.
+          <p className="text-[10px] text-[#999999] mt-0.5 leading-tight font-sans">
+            {isBN 
+              ? "JPEG, PNG, WEBP ফরম্যাট সমর্থিত। একসাথে ৩০টি পর্যন্ত ছবি আপলোড করে ব্যাচ প্রসেস করতে পারবেন।" 
+              : "Supports JPEG, PNG, WEBP. Upload up to 30 images for fast batch processing."}
           </p>
         </div>
       </div>

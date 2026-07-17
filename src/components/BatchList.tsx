@@ -1,5 +1,5 @@
 import React from "react";
-import { Image as ImageIcon, Trash2, RefreshCw, CheckCircle, AlertTriangle, Play, HelpCircle } from "lucide-react";
+import { Image as ImageIcon, Trash2, RefreshCw, CheckCircle, AlertTriangle, Play, HelpCircle, Download } from "lucide-react";
 import { AnalyzedImage } from "../types";
 
 interface BatchListProps {
@@ -8,6 +8,7 @@ interface BatchListProps {
   onSelectImage: (id: string) => void;
   onRemoveImage: (id: string) => void;
   onAnalyzeImage: (id: string) => void;
+  lang: "bn" | "en";
 }
 
 export default function BatchList({
@@ -16,27 +17,30 @@ export default function BatchList({
   onSelectImage,
   onRemoveImage,
   onAnalyzeImage,
+  lang,
 }: BatchListProps) {
+  const isBN = lang === "bn";
+
   const getStatusBadge = (image: AnalyzedImage) => {
     switch (image.status) {
       case "idle":
         return (
           <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-[#333333] text-[#999999] border border-[#444444]">
-            Ready
+            {isBN ? "প্রস্তুত" : "Ready"}
           </span>
         );
       case "analyzing":
         return (
           <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-[#0265DC]/10 text-blue-400 border border-[#0265DC]/20 animate-pulse">
             <RefreshCw className="w-2.5 h-2.5 mr-1 animate-spin" />
-            Analyzing
+            {isBN ? "বিশ্লেষণ হচ্ছে..." : "Analyzing"}
           </span>
         );
       case "error":
         return (
           <span className="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-[#FA0F00]/10 text-[#FA0F00] border border-[#FA0F00]/20">
             <AlertTriangle className="w-2.5 h-2.5 mr-1" />
-            Error
+            {isBN ? "ত্রুটি" : "Error"}
           </span>
         );
       case "completed":
@@ -50,7 +54,7 @@ export default function BatchList({
         return (
           <span className={`inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-medium ${color}`}>
             <CheckCircle className="w-2.5 h-2.5 mr-1" />
-            {rate}% Pass
+            {rate}% {isBN ? "পাস" : "Pass"}
           </span>
         );
     }
@@ -70,7 +74,7 @@ export default function BatchList({
         <div className="flex items-center space-x-2">
           <ImageIcon className="w-4 h-4 text-[#0265DC]" />
           <h2 className="text-xs font-bold uppercase tracking-wide text-white">
-            Upload Queue ({images.length})
+            {isBN ? `আপলোড কিউ (${images.length})` : `Upload Queue (${images.length})`}
           </h2>
         </div>
       </div>
@@ -79,7 +83,7 @@ export default function BatchList({
         <div className="flex-1 flex flex-col items-center justify-center py-8 px-2 text-center">
           <ImageIcon className="w-6 h-6 text-[#444444] mb-2" />
           <p className="text-[11px] text-[#666666] font-sans">
-            No images in workspace queue.
+            {isBN ? "ওয়ার্কস্পেস কিউতে কোনো ইমেজ নেই।" : "No images in workspace queue."}
           </p>
         </div>
       ) : (
@@ -114,13 +118,27 @@ export default function BatchList({
                     <p className="text-[9px] font-mono text-[#666666] mt-0.5">
                       {getFileSizeString(image.fileSize)}
                     </p>
-                    <div className="mt-1 flex items-center space-x-2">
+                    <div className="mt-1 flex items-center space-x-2 animate-fadeIn">
                       {getStatusBadge(image)}
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-1 pl-1">
+                  {image.status === "completed" && (
+                    <a
+                      href={image.dataUrl}
+                      download={image.filename}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="p-1 rounded bg-[#111111] border border-[#333333] text-[#666666] hover:bg-[#0265DC]/10 hover:text-[#0265DC] transition-all cursor-pointer flex items-center justify-center"
+                      title={isBN ? "ইমেজ ডাউনলোড করুন" : "Download Image"}
+                      id={`btn-download-${image.id}`}
+                    >
+                      <Download className="w-3 h-3" />
+                    </a>
+                  )}
                   {image.status === "idle" && (
                     <button
                       onClick={(e) => {
@@ -128,7 +146,7 @@ export default function BatchList({
                         onAnalyzeImage(image.id);
                       }}
                       className="p-1 rounded bg-[#333333] border border-[#444444] text-[#0265DC] hover:bg-[#0265DC] hover:text-white transition-all"
-                      title="Analyze"
+                      title={isBN ? "বিশ্লেষণ করুন" : "Analyze"}
                       id={`btn-analyze-${image.id}`}
                     >
                       <Play className="w-3 h-3 fill-current" />
@@ -141,7 +159,7 @@ export default function BatchList({
                         onAnalyzeImage(image.id);
                       }}
                       className="p-1 rounded bg-[#333333] border border-[#444444] text-white hover:bg-slate-700 transition-all"
-                      title="Retry"
+                      title={isBN ? "পুনরায় চেষ্টা করুন" : "Retry"}
                       id={`btn-retry-${image.id}`}
                     >
                       <RefreshCw className="w-3 h-3" />
@@ -153,7 +171,7 @@ export default function BatchList({
                       onRemoveImage(image.id);
                     }}
                     className="p-1 rounded bg-[#111111] border border-[#333333] text-[#666666] hover:bg-[#FA0F00]/10 hover:text-[#FA0F00] transition-all"
-                    title="Remove"
+                    title={isBN ? "মুছে ফেলুন" : "Remove"}
                     id={`btn-remove-${image.id}`}
                   >
                     <Trash2 className="w-3 h-3" />

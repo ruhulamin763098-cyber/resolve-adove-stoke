@@ -1,29 +1,37 @@
 import React, { useState } from "react";
-import { ADOBE_STOCK_GUIDELINES } from "../data/guidelines";
+import { ADOBE_STOCK_GUIDELINES, ADOBE_STOCK_GUIDELINES_BN } from "../data/guidelines";
 import { HelpCircle, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Lightbulb } from "lucide-react";
 
-export default function GuidelineCard() {
+interface GuidelineCardProps {
+  lang: "bn" | "en";
+}
+
+export default function GuidelineCard({ lang }: GuidelineCardProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const toggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
+  const guidelines = lang === "bn" ? ADOBE_STOCK_GUIDELINES_BN : ADOBE_STOCK_GUIDELINES;
+
   return (
     <div className="bg-[#252525] border border-[#333333] rounded-sm p-4 shadow-sm" id="guideline-card-container">
       <div className="flex items-center space-x-2 border-b border-[#333333] pb-3 mb-3">
         <HelpCircle className="w-4 h-4 text-[#0265DC]" />
         <h2 className="text-xs font-bold uppercase tracking-wide text-white">
-          Adobe Stock Review Guidelines
+          {lang === "bn" ? "অ্যাডোবি স্টক রিভিউ গাইডলাইন" : "Adobe Stock Review Guidelines"}
         </h2>
       </div>
 
       <p className="text-xs text-[#999999] mb-4 font-sans">
-        Reviewers inspect submissions at 100% zoom. Fix these technical guidelines errors before uploading to increase approval probability.
+        {lang === "bn" 
+          ? "অ্যাডোবি স্টক রিভিউয়াররা আপনার ফাইলগুলোকে ১০০% জুমে পরীক্ষা করেন। আপলোড করার আগে এই টেকনিক্যাল গাইডলাইনগুলো চেক করে সমাধান করে নিন যাতে রিজেকশন রেট কমানো যায়।" 
+          : "Reviewers inspect submissions at 100% zoom. Fix these technical guidelines errors before uploading to increase approval probability."}
       </p>
 
       <div className="space-y-2.5" id="guideline-accordion">
-        {ADOBE_STOCK_GUIDELINES.map((guideline, index) => {
+        {guidelines.map((guideline, index) => {
           const isOpen = openIndex === index;
           return (
             <div
@@ -55,7 +63,7 @@ export default function GuidelineCard() {
                   <div className="space-y-1">
                     <div className="flex items-center space-x-1 text-orange-400 font-bold uppercase text-[10px] tracking-wide">
                       <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>Rejection Triggers</span>
+                      <span>{lang === "bn" ? "রিজেকশনের কারণ" : "Rejection Triggers"}</span>
                     </div>
                     <p className="text-[#999999] leading-relaxed pl-4.5">
                       {guideline.rejectionReason}
@@ -65,7 +73,7 @@ export default function GuidelineCard() {
                   <div className="space-y-1">
                     <div className="flex items-center space-x-1 text-green-400 font-bold uppercase text-[10px] tracking-wide">
                       <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>Actionable Fix</span>
+                      <span>{lang === "bn" ? "কার্যকরী সমাধান" : "Actionable Fix"}</span>
                     </div>
                     <p className="text-[#e0e0e0] leading-relaxed pl-4.5">
                       {guideline.solution}
@@ -75,7 +83,7 @@ export default function GuidelineCard() {
                   <div className="space-y-1.5 bg-[#1e1e1e] p-2.5 border border-[#333333] rounded-sm">
                     <div className="flex items-center space-x-1 text-blue-400 font-bold uppercase text-[9px] tracking-widest">
                       <Lightbulb className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>Specialist Guidelines Tips</span>
+                      <span>{lang === "bn" ? "বিশেষজ্ঞ টিপস ও ট্রিকস" : "Specialist Guidelines Tips"}</span>
                     </div>
                     <ul className="list-disc list-inside space-y-1 text-[11px] text-[#999999] pl-1">
                       {guideline.tips.map((tip, tIndex) => (

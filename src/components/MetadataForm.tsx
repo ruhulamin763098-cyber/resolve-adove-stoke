@@ -6,6 +6,7 @@ import { AnalyzedImage } from "../types";
 interface MetadataFormProps {
   image: AnalyzedImage | null;
   onUpdateMetadata: (id: string, updates: Partial<AnalyzedImage["adobeStockMetadata"]>) => void;
+  lang: "bn" | "en";
 }
 
 const FORBIDDEN_WORDS = [
@@ -25,11 +26,12 @@ const FORBIDDEN_WORDS = [
   "artstation",
 ];
 
-export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormProps) {
+export default function MetadataForm({ image, onUpdateMetadata, lang }: MetadataFormProps) {
   const [newKeyword, setNewKeyword] = useState("");
   const [copiedTitle, setCopiedTitle] = useState(false);
   const [copiedKeywords, setCopiedKeywords] = useState(false);
   const [titleWarnings, setTitleWarnings] = useState<string[]>([]);
+  const isBN = lang === "bn";
 
   const metadata = image?.adobeStockMetadata;
 
@@ -49,9 +51,13 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
     return (
       <div className="bg-[#252525] border border-[#333333] rounded-sm p-6 shadow-sm flex flex-col items-center justify-center text-center h-full min-h-[160px]" id="metadata-empty">
         <Tag className="w-8 h-8 text-[#666666] mb-3" />
-        <h3 className="text-xs font-bold uppercase tracking-wide text-[#e0e0e0]">No Metadata Available</h3>
+        <h3 className="text-xs font-bold uppercase tracking-wide text-[#e0e0e0]">
+          {isBN ? "মেটাডেটা উপলভ্য নয়" : "No Metadata Available"}
+        </h3>
         <p className="text-[11px] text-[#999999] max-w-xs mt-1 leading-normal font-sans">
-          Metadata will be generated automatically once you run the AI Quality Scan on an image.
+          {isBN 
+            ? "একটি ইমেজের উপর AI কোয়ালিটি স্ক্যান করার পর মেটাডেটা স্বয়ংক্রিয়ভাবে জেনারেট হয়ে যাবে।" 
+            : "Metadata will be generated automatically once you run the AI Quality Scan on an image."}
         </p>
       </div>
     );
@@ -122,7 +128,7 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
       <div className="flex items-center space-x-2 border-b border-[#333333] pb-2 mb-2">
         <Sparkles className="w-4 h-4 text-amber-500" />
         <h2 className="text-xs font-bold uppercase tracking-wide text-white">
-          Guidelines-Optimized Metadata
+          {isBN ? "অ্যাডোবি গাইডলাইন-অপ্টিমাইজড মেটাডেটা" : "Guidelines-Optimized Metadata"}
         </h2>
       </div>
 
@@ -131,22 +137,22 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-[#e0e0e0] flex items-center space-x-1">
             <FileText className="w-3.5 h-3.5 text-[#0265DC]" />
-            <span>Suggested Title (descriptive & objective)</span>
+            <span>{isBN ? "প্রস্তাবিত শিরোনাম (বর্ণনামূলক ও বস্তুনিষ্ঠ)" : "Suggested Title (descriptive & objective)"}</span>
           </label>
           <button
             onClick={handleCopyTitle}
-            className="text-[10px] flex items-center space-x-1 text-[#e0e0e0] hover:text-white bg-[#333333] border border-[#444444] hover:bg-[#444444] px-2 py-0.5 rounded-sm"
+            className="text-[10px] flex items-center space-x-1 text-[#e0e0e0] hover:text-white bg-[#333333] border border-[#444444] hover:bg-[#444444] px-2 py-0.5 rounded-sm focus:outline-none cursor-pointer transition-all"
             id={`btn-copy-title-${image.id}`}
           >
             {copiedTitle ? (
               <>
                 <Check className="w-3 h-3 text-green-400" />
-                <span className="text-green-400">Copied!</span>
+                <span className="text-green-400">{isBN ? "কপি হয়েছে!" : "Copied!"}</span>
               </>
             ) : (
               <>
                 <Copy className="w-3 h-3" />
-                <span>Copy Title</span>
+                <span>{isBN ? "শিরোনাম কপি করুন" : "Copy Title"}</span>
               </>
             )}
           </button>
@@ -167,7 +173,12 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
           <div className="flex items-start space-x-1.5 p-2 rounded-sm bg-[#FA0F00]/5 border border-[#FA0F00]/15 text-[#FA0F00] text-[10px] leading-relaxed">
             <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
             <div>
-              <span className="font-bold uppercase tracking-wide mr-1">Submission Rules Warning:</span> Adobe Stock forbids metadata that contains quality descriptive terms. Please remove:{" "}
+              <span className="font-bold uppercase tracking-wide mr-1">
+                {isBN ? "সাবমিশন নিয়মাবলি সতর্কতা:" : "Submission Rules Warning:"}
+              </span>
+              {isBN 
+                ? "অ্যাডোবি স্টকে গুণগত মান বর্ণনাকারী বা অতিরিক্ত কিওয়ার্ড মেটাডেটায় ব্যবহার নিষিদ্ধ। অনুগ্রহ করে মুছে ফেলুন: "
+                : "Adobe Stock forbids metadata that contains quality descriptive terms. Please remove: "}
               <span className="font-mono bg-[#1a1a1a] px-1 py-0.5 rounded-sm text-[10px] font-bold border border-[#FA0F00]/35 text-white">
                 {titleWarnings.join(", ")}
               </span>
@@ -180,7 +191,7 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono font-bold text-[#999999] uppercase tracking-wide">
-            Recommended Category
+            {isBN ? "প্রস্তাবিত ক্যাটাগরি" : "Recommended Category"}
           </label>
           <select
             value={metadata.category}
@@ -198,7 +209,7 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-mono font-bold text-[#999999] uppercase tracking-wide block">
-            Generative AI Declaration
+            {isBN ? "জেনারেটিভ AI ঘোষণা" : "Generative AI Declaration"}
           </label>
           <div className="flex items-center space-x-2 bg-[#1a1a1a] border border-[#333333] rounded-sm p-2 h-[34px]">
             <input
@@ -212,7 +223,7 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
               htmlFor={`ai-declare-checkbox-${image.id}`}
               className="text-[11px] text-[#e0e0e0] cursor-pointer select-none font-medium"
             >
-              Created with Generative AI tools
+              {isBN ? "জেনারেটিভ AI টুলের সাহায্যে তৈরি" : "Created with Generative AI tools"}
             </label>
           </div>
         </div>
@@ -224,7 +235,7 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
           <div className="flex items-center space-x-1.5">
             <Tag className="w-3.5 h-3.5 text-[#0265DC]" />
             <span className="text-xs font-bold text-[#e0e0e0]">
-              Keywords Tag Cloud
+              {isBN ? "কিওয়ার্ড ট্যাগ ক্লাউড" : "Keywords Tag Cloud"}
             </span>
             <span
               className={`text-[9px] font-mono px-1.5 py-0.5 rounded-sm font-bold border ${
@@ -233,24 +244,24 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
                   : "bg-green-950/20 text-green-400 border-green-900/30"
               }`}
             >
-              {keywordCount} / 50 Tags
+              {keywordCount} / 50 {isBN ? "ট্যাগ" : "Tags"}
             </span>
           </div>
 
           <button
             onClick={handleCopyKeywords}
-            className="text-[10px] flex items-center space-x-1 text-[#e0e0e0] hover:text-white bg-[#333333] border border-[#444444] hover:bg-[#444444] px-2 py-0.5 rounded-sm"
+            className="text-[10px] flex items-center space-x-1 text-[#e0e0e0] hover:text-white bg-[#333333] border border-[#444444] hover:bg-[#444444] px-2 py-0.5 rounded-sm focus:outline-none cursor-pointer transition-all"
             id={`btn-copy-keywords-${image.id}`}
           >
             {copiedKeywords ? (
               <>
                 <Check className="w-3 h-3 text-green-400" />
-                <span className="text-green-400">Copied!</span>
+                <span className="text-green-400">{isBN ? "কপি হয়েছে!" : "Copied!"}</span>
               </>
             ) : (
               <>
                 <Copy className="w-3 h-3" />
-                <span>Copy Tags</span>
+                <span>{isBN ? "ট্যাগ কপি করুন" : "Copy Tags"}</span>
               </>
             )}
           </button>
@@ -262,13 +273,13 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
             type="text"
             value={newKeyword}
             onChange={(e) => setNewKeyword(e.target.value)}
-            placeholder="Add tag or paste comma-separated list..."
+            placeholder={isBN ? "ট্যাগ যুক্ত করুন বা কমা দিয়ে আলাদা করে পেস্ট করুন..." : "Add tag or paste comma-separated list..."}
             className="flex-1 text-xs text-[#e0e0e0] bg-[#1a1a1a] border border-[#333333] rounded-sm px-2.5 py-1.5 focus:border-[#0265DC] focus:outline-none"
             id={`tag-input-field-${image.id}`}
           />
           <button
             type="submit"
-            className="px-2.5 bg-[#0265DC] hover:bg-[#0052b4] text-white rounded-sm transition-all text-xs"
+            className="px-2.5 bg-[#0265DC] hover:bg-[#0052b4] text-white rounded-sm transition-all text-xs cursor-pointer focus:outline-none flex items-center justify-center"
             id={`btn-add-tag-${image.id}`}
           >
             <Plus className="w-3.5 h-3.5" />
@@ -289,7 +300,7 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
               <button
                 type="button"
                 onClick={() => handleRemoveKeyword(idx)}
-                className="text-[#666666] hover:text-[#FA0F00] transition-colors p-0.5"
+                className="text-[#666666] hover:text-[#FA0F00] transition-colors p-0.5 cursor-pointer focus:outline-none"
                 id={`btn-remove-tag-${idx}-${image.id}`}
               >
                 <X className="w-2.5 h-2.5" />
@@ -299,12 +310,16 @@ export default function MetadataForm({ image, onUpdateMetadata }: MetadataFormPr
 
           {keywordCount === 0 && (
             <div className="w-full flex items-center justify-center h-full text-[#666666] text-[11px] py-10 italic">
-              No tags loaded. Run AI diagnostics to output suggested keywords.
+              {isBN 
+                ? "কোনো ট্যাগ লোড হয়নি। প্রস্তাবিত কিওয়ার্ড পেতে AI ডায়াগনস্টিক রান করুন।" 
+                : "No tags loaded. Run AI diagnostics to output suggested keywords."}
             </div>
           )}
         </div>
         <p className="text-[10px] text-[#666666] leading-tight">
-          *Note: Adobe Stock sorts tags by relevance. Ensure your first 10 keywords represent the core context.
+          {isBN 
+            ? "*দ্রষ্টব্য: অ্যাডোবি স্টক প্রাসঙ্গিকতার ভিত্তিতে ট্যাগ সাজায়। নিশ্চিত করুন যে আপনার প্রথম ১০টি কিওয়ার্ড মূল বিষয়বস্তুকে উপস্থাপন করে।"
+            : "*Note: Adobe Stock sorts tags by relevance. Ensure your first 10 keywords represent the core context."}
         </p>
       </div>
     </div>

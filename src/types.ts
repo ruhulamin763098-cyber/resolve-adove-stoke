@@ -32,6 +32,7 @@ export interface AnalyzedImage {
   adobeStockMetadata?: AdobeStockMetadata;
   rejectionChecklist?: ChecklistItem[];
   customNotes?: string;
+  usedFallback?: boolean;
 }
 
 export interface CommonGuideline {
