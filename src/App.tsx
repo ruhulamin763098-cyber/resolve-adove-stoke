@@ -17,7 +17,10 @@ import {
   FileSpreadsheet,
   Layers,
   CheckCircle,
-  Info
+  Info,
+  Key,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 // Pre-loaded abstract SVG gradients as Demo Images to test the app instantly!
@@ -113,6 +116,11 @@ export default function App() {
   });
 
   const isBN = lang === "bn";
+
+  const [customApiKey, setCustomApiKey] = useState<string>(() => {
+    return localStorage.getItem("adobe_stock_gemini_key") || "";
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const handleLangChange = (newLang: "bn" | "en") => {
     setLang(newLang);
@@ -266,6 +274,7 @@ export default function App() {
           filename: imgToAnalyze.filename,
           customNotes: imgToAnalyze.customNotes,
           language: lang,
+          customApiKey: customApiKey,
         }),
       });
 
@@ -576,6 +585,84 @@ export default function App() {
         <section className="lg:col-span-4 flex flex-col space-y-3.5 h-full" id="workspace-sidebar">
           {/* File input drag and drop card */}
           <ImageDropzone onImagesAdded={handleImagesAdded} lang={lang} />
+
+          {/* Gemini API Key Settings Card */}
+          <div className="bg-[#252525] border border-[#333333] rounded-sm p-3.5 space-y-3 shadow-md" id="gemini-api-settings">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-white">
+                <Key className="w-4 h-4 text-[#0265DC]" />
+                <span className="text-xs font-bold tracking-wide uppercase font-sans">
+                  {isBN ? "জেমিনী এপিআই কী (ঐচ্ছিক)" : "Gemini API Key (Optional)"}
+                </span>
+              </div>
+              <div className="flex items-center">
+                {customApiKey ? (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-green-500/10 text-green-400 border border-green-500/20 font-sans">
+                    {isBN ? "কাস্টম কী সক্রিয়" : "Custom Key Active"}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-[#FA0F00]/10 text-[#FA0F00] border border-[#FA0F00]/20 font-sans">
+                    {isBN ? "ডিফল্ট কী সক্রিয়" : "Default Key Active"}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <p className="text-[11px] text-[#999999] leading-relaxed">
+              {isBN 
+                ? "আপনার নিজস্ব Gemini API Key ব্যবহার করে সরাসরি স্ক্যান করতে এখানে কী যুক্ত করুন। এটি আপনার ব্রাউজারে নিরাপদভাবে সংরক্ষিত থাকবে।" 
+                : "Add your personal Gemini API Key here to run diagnostic scans with your own quotas. The key remains safely stored in your local browser."}
+            </p>
+
+            <div className="relative flex items-center">
+              <input
+                type={showApiKey ? "text" : "password"}
+                value={customApiKey}
+                onChange={(e) => {
+                  const val = e.target.value.trim();
+                  setCustomApiKey(val);
+                  if (val) {
+                    localStorage.setItem("adobe_stock_gemini_key", val);
+                  } else {
+                    localStorage.removeItem("adobe_stock_gemini_key");
+                  }
+                }}
+                placeholder={isBN ? "AI Key লিখুন (AIzaSy...)" : "Enter API Key (AIzaSy...)"}
+                className="w-full bg-[#1a1a1a] text-xs text-[#e0e0e0] placeholder-[#555555] border border-[#333333] hover:border-[#444444] focus:border-[#0265DC] focus:ring-1 focus:ring-[#0265DC] rounded-sm pl-2.5 pr-14 py-2 transition-all outline-none font-mono"
+                id="gemini-api-key-input"
+              />
+              <div className="absolute right-1.5 flex items-center space-x-1">
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="p-1 hover:bg-[#333333] text-[#888888] hover:text-white rounded-sm transition-colors cursor-pointer"
+                  title={showApiKey ? (isBN ? "কী লুকান" : "Hide Key") : (isBN ? "কী দেখুন" : "Show Key")}
+                >
+                  {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+                {customApiKey && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomApiKey("");
+                      localStorage.removeItem("adobe_stock_gemini_key");
+                    }}
+                    className="p-1 hover:bg-[#333333] text-[#FA0F00] hover:text-[#ff4d4d] rounded-sm transition-colors cursor-pointer text-[10px] font-sans"
+                    title={isBN ? "কী মুছুন" : "Clear Key"}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {customApiKey && (
+              <div className="text-[10px] text-green-400 flex items-center gap-1 font-sans animate-fadeIn">
+                <CheckCircle className="w-3 h-3" />
+                <span>{isBN ? "কী সফলভাবে ব্রাউজারে সেভ হয়েছে!" : "API Key saved successfully in browser!"}</span>
+              </div>
+            )}
+          </div>
 
           {/* Preset generator for testing */}
           {images.length === 0 && (

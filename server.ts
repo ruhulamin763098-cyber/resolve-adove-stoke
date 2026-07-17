@@ -297,7 +297,7 @@ function generateLocalFallbackAnalysis(filename: string, isBengali: boolean, cus
 
 // API endpoint to analyze Adobe Stock upload images
 app.post("/api/analyze-image", async (req, res) => {
-  const { imageBase64, mimeType, filename, customNotes, language } = req.body;
+  const { imageBase64, mimeType, filename, customNotes, language, customApiKey } = req.body;
   const isBengali = language === "bn";
 
   try {
@@ -306,7 +306,19 @@ app.post("/api/analyze-image", async (req, res) => {
       return;
     }
 
-    const ai = getGeminiClient();
+    let ai: GoogleGenAI;
+    if (customApiKey && customApiKey.trim() !== "") {
+      ai = new GoogleGenAI({
+        apiKey: customApiKey.trim(),
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build",
+          },
+        },
+      });
+    } else {
+      ai = getGeminiClient();
+    }
 
     const imagePart = {
       inlineData: {
@@ -410,6 +422,17 @@ Filename provided: ${filename || "unnamed_image.jpg"}`,
 
     res.json(JSON.parse(text));
   } catch (error: any) {
+    const msg = error.message || String(error);
+    const isApiKeyError = msg.includes("API key") || msg.includes("API_KEY") || msg.includes("key is invalid") || msg.includes("invalid key") || msg.includes("400") || msg.includes("401");
+    if (isApiKeyError && customApiKey) {
+      res.status(400).json({
+        error: isBengali 
+          ? "আপনার প্রদানকৃত এপিআই কী (API Key) অকার্যকর বা ভুল। অনুগ্রহ করে সঠিক Gemini API Key ব্যবহার করুন।" 
+          : "The provided Gemini API Key is invalid or incorrect. Please ensure you enter a valid key."
+      });
+      return;
+    }
+
     console.warn("API quota/server issue detected. Running high-fidelity local scanner backup fallback...", error);
     try {
       const fallbackResult = generateLocalFallbackAnalysis(filename, isBengali, customNotes);
