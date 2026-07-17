@@ -10,8 +10,8 @@ const app = express();
 const PORT = 3000;
 
 // Set body parser limits for base64 image uploads
-app.use(express.json({ limit: "15mb" }));
-app.use(express.urlencoded({ limit: "15mb", extended: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Lazy-initialized Gemini client
 let aiClient: GoogleGenAI | null = null;
@@ -420,6 +420,15 @@ Filename provided: ${filename || "unnamed_image.jpg"}`,
       });
     }
   }
+});
+
+// Custom error handler for JSON API routes to prevent default HTML error responses from Express
+app.use("/api", (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error("API Namespace Error:", err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    error: err.message || "An unexpected error occurred on the server."
+  });
 });
 
 // Setup Vite or static serving
